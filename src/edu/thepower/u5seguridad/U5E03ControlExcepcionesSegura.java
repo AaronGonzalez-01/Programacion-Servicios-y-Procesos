@@ -10,59 +10,94 @@ import java.util.logging.Logger;
 public class U5E03ControlExcepcionesSegura {
 
     private static final Logger LOG = Logger.getLogger(U5E03ControlExcepcionesSegura.class.getName());
-    static Scanner sc;
+
+    private static Scanner sc;
 
     public static void main(String[] args) {
-
         sc = new Scanner(System.in);
-
-        System.out.println("=== U5E03 INSEGURO: API con fugas de info ===");
+        System.out.println("=== U5E03 SEGURO: API con fugas de info ===");
         System.out.println("1) Leer fichero config.txt");
         System.out.println("2) Parsear JSON (muy simple)");
         System.out.println("3) Conectar a BD (simulada)");
         System.out.print("> ");
 
         int option = 0;
-        try {
-            option = Integer.parseInt(sc.nextLine());
-            System.out.println("Ok" + procesarOpcion(option));
-        } catch (IOException e) {
-            System.err.println("ERROR [ERR_ES] Recursos no existe");
-            LOG.log(Level.WARNING, "Error al localizar recursos " + option + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("opcion no valida");
-            LOG.log(Level.INFO, "Error en la solicitud " + option + e.getMessage());
-        }
 
+        try {
+            option = Integer.parseInt(sc.nextLine().trim());
+            System.out.println("OK " + procesarOpcion(option));
+
+        } catch (NumberFormatException e) {
+            System.err.println("Opción no permitida");
+        } catch (IOException e) {
+            System.err.println("ERROR [ERR_ES] No se puede acceder al recurso");
+            LOG.log(Level.WARNING, "Error al localizar el recurso " + option + ": " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.err.println("ERROR [ERR_INPUT] Solicitud invalida");
+            LOG.log(Level.INFO, "Error al localizar recurso " + option + ": " + e.getMessage());
+        } catch (RuntimeException e) {
+            System.err.println("ERROR [ERR_UNKNOWN] Error desconocido");
+            LOG.log(Level.SEVERE, "Error inesperado en la ejecucion " + option + ": " + e.getMessage(), e );
+        }
         sc.close();
     }
 
     private static String readConfigInsecure(String filename) throws IOException {
+
+        // Nota: aunque usemos try-with-resources correctamente,
+
+        // el problema de seguridad del ejercicio es el stack trace al usuario.
+
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
-            return br.readLine();
+
+            return br.readLine(); // leemos solo primera línea para simplificar
+
         }
+
     }
 
-    private static String procesarOpcion(int opcion) throws IOException {
+    private static String procesarOpcion(int option) throws IOException {
         String respuesta;
-        if (opcion == 1) {
+        if (option == 1) {
+
             String content = readConfigInsecure("config.txt");
-            if (content == null || content.isBlank()) {
-                respuesta = "Archivo vacio";
+            if  (content == null || content.isBlank()) {
+                respuesta = "Archivo vacío";
             } else {
-                respuesta = "Configuracion leida";
+                respuesta = "Archivo leído";
             }
-        } else if (opcion == 2) {
+
+
+        } else if (option == 2) {
+
             System.out.print("JSON: ");
+
             String json = sc.nextLine();
+
+            // Parse "falso": si no empieza por { -> excepción
+
             if (!json.trim().startsWith("{")) {
+
                 throw new IllegalArgumentException("JSON inválido: debe empezar con '{'");
+
             }
+
             respuesta = "JSON OK (simulado)";
-        } else if (opcion == 3) {
-            throw new IOException("No se puede conectar a la BD en localhost:5432");
+
+
+
+        } else if (option == 3) {
+
+            // Simula BD caída
+
+            throw new IOException("No se puede conectar a la BD");
+
+
+
         } else {
+
             throw new IllegalArgumentException("Opción inválida");
+
         }
         return respuesta;
     }
